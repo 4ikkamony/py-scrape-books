@@ -1,3 +1,5 @@
+from typing import Generator, Any
+
 import scrapy
 from scrapy.http import Response
 
@@ -8,8 +10,10 @@ class BookSpider(scrapy.Spider):
     start_urls = ["https://books.toscrape.com"]
 
     @staticmethod
-    def parse_book_detail(responce: Response):
-        book = responce.css(".page_inner")
+    def parse_book_detail(
+        response: Response
+    ) -> Generator[dict[str, str | Any], Any, None]:
+        book = response.css(".page_inner")
         book_content = book.css(".content")
 
         title = book_content.css(".product_main h1::text").get() or "No title"
@@ -23,7 +27,7 @@ class BookSpider(scrapy.Spider):
         rating = (
             book_content.css(
                 "p.star-rating::attr(class)"
-            ).re_first("star-rating (\w+)") or "No rating"
+            ).re_first(r"star-rating (\w+)") or "No rating"
         )
         category = (
             book.css("ul.breadcrumb li:nth-child(3) a::text").get()
@@ -52,7 +56,11 @@ class BookSpider(scrapy.Spider):
             "ups": ups,
         }
 
-    def parse(self, response: Response, **kwargs):
+    def parse(
+        self,
+        response: Response,
+        **kwargs
+    ) -> Generator[scrapy.Request, Any, None]:
         for book in response.css(".product_pod"):
             book_detail_url = response.urljoin(
                 book.css("h3 a::attr(href)").get()
